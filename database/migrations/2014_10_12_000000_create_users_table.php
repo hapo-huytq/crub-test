@@ -21,6 +21,7 @@ class CreateUsersTable extends Migration
             $table->integer('user_type');
             $table->integer('phone');
             $table->longText('avatar')->nullable();
+            $table->softDeletes();
             $table->timestamps();
         });
     }

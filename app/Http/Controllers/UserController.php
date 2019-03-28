@@ -2,11 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use Dotenv\Validator;
+use App\Http\Requests\UserEditRequest;
 use Vallidator;
 use App\Http\Requests\UserRequest;
 use Illuminate\Http\Request;
 use App\User;
+use Illuminate\Support\Facades\Storage;
 
 
 class UserController extends Controller
@@ -18,7 +19,9 @@ class UserController extends Controller
      */
     public function index()
     {
-        return view('users.pages.home');
+        $usersObj = new User();
+        $users = $usersObj->all();
+        return view('users.pages.home', compact('users'));
     }
 
     /**
@@ -39,13 +42,25 @@ class UserController extends Controller
      */
     public function store(UserRequest $request)
     {
-        $user = new User;
-        $user->name = $request->name;
-        $user->email = $request->email;
-        $user->password = $request->password;
-        $user->user_type = $request->userType;
-        $user->phone = $request->phoneNumber;
-        $user->save();
+        $user = new User();
+        $userAvatar = '';
+        if ($request->hasFile('avatar')) {
+            $fileExtension = '.'.$request->avatar->extension();
+            $imageName = 'img'.uniqid().$fileExtension;
+            $request->file('avatar')->storeAs('', $imageName, 'avatar_upload');
+            $userAvatar = $imageName;
+        }
+        $storing = $user->create([
+            'name' => $request->name,
+            'email' => $request->email,
+            'password' => bcrypt($request->password),
+            'user_type' => $request->user_type,
+            'phone' => $request->phone,
+            'avatar' => $userAvatar,
+        ]);
+        if($storing == true) {
+            return redirect()->route('users.index');
+        }
     }
 
     /**
@@ -56,7 +71,8 @@ class UserController extends Controller
      */
     public function show($id)
     {
-        //
+        $user = User::findOrFail($id);
+        return view('users.pages.show', compact('user'));
     }
 
     /**
@@ -67,7 +83,8 @@ class UserController extends Controller
      */
     public function edit($id)
     {
-        //
+        $user = User::findOrFail($id);
+        return view('users.pages.edit', compact('user'));
     }
 
     /**
@@ -77,9 +94,24 @@ class UserController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function update(Request $request, $id)
+    public function update(UserEditRequest $request, $id)
     {
-        //
+        $user = User::findOrFail($id);
+        $user->name = $request->name;
+        $user->email = $request->email;
+        $user->user_type = $request->user_type;
+        $user->phone = $request->phone;
+        if ($request->hasFile('avatar')) {
+            Storage::disk('avatar_upload')->delete($user->avatar);
+            $fileExtension = '.'.$request->avatar->extension();
+            $imageName = 'img'.uniqid().$fileExtension;
+            $request->file('avatar')->storeAs('', $imageName, 'avatar_upload');
+            $user->avatar = $imageName;
+        }
+        $update = $user->save();
+        if($update == true) {
+            return redirect()->route('users.index');
+        }
     }
 
     /**
@@ -90,6 +122,11 @@ class UserController extends Controller
      */
     public function destroy($id)
     {
-        //
+        $user = User::findOrFail($id);
+        Storage::disk('avatar_upload')->delete($user->avatar);
+        $delete = $user->delete();
+        if($delete == true) {
+            return redirect()->route('users.index');
+        }
     }
 }
