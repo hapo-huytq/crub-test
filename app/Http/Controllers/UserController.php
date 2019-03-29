@@ -19,8 +19,7 @@ class UserController extends Controller
      */
     public function index()
     {
-        $usersObj = new User();
-        $users = $usersObj->all();
+        $users = User::all();
         return view('users.pages.home', compact('users'));
     }
 
@@ -42,7 +41,6 @@ class UserController extends Controller
      */
     public function store(UserRequest $request)
     {
-        $user = new User();
         $userAvatar = '';
         if ($request->hasFile('avatar')) {
             $fileExtension = '.'.$request->avatar->extension();
@@ -50,7 +48,7 @@ class UserController extends Controller
             $request->file('avatar')->storeAs('', $imageName, 'avatar_upload');
             $userAvatar = $imageName;
         }
-        $storing = $user->create([
+        User::create([
             'name' => $request->name,
             'email' => $request->email,
             'password' => bcrypt($request->password),
@@ -58,9 +56,7 @@ class UserController extends Controller
             'phone' => $request->phone,
             'avatar' => $userAvatar,
         ]);
-        if($storing == true) {
-            return redirect()->route('users.index');
-        }
+        return redirect()->route('users.index');
     }
 
     /**
@@ -108,10 +104,8 @@ class UserController extends Controller
             $request->file('avatar')->storeAs('', $imageName, 'avatar_upload');
             $user->avatar = $imageName;
         }
-        $update = $user->save();
-        if($update == true) {
-            return redirect()->route('users.index');
-        }
+        $user->save();
+        return redirect()->route('users.index');
     }
 
     /**
@@ -124,9 +118,7 @@ class UserController extends Controller
     {
         $user = User::findOrFail($id);
         Storage::disk('avatar_upload')->delete($user->avatar);
-        $delete = $user->delete();
-        if($delete == true) {
-            return redirect()->route('users.index');
-        }
+        $user->delete();
+        return redirect()->route('users.index');
     }
 }
